@@ -31,6 +31,7 @@ class PiUi(object):
     def __init__(self, screen):
         super(PiUi, self).__init__()
         self.screen = screen
+        self.looping = None
         self.position = 1
         font_path = os.path.abspath(FONT_PATH)
         self.font = ImageFont.truetype(font_path, FONT_SIZE)
@@ -49,9 +50,9 @@ class PiUi(object):
     #####
     def loop(self):
         try:
-            if self.loop != None:
-                self.loop = True
-                while self.loop:
+            if self.looping is None:
+                self.looping = True
+                while self.looping:
                     self.on_refresh()
                     # self.sensor.wait_for_input()
                     print("Loop:Start")
@@ -82,6 +83,7 @@ class PiUi(object):
 
     #####
     def input_event(self, event):
+        self.sensor.hat.stick.get_events()
         print("Event direction, action, timestamp:")
         print(event.direction)
         print(event.action)
@@ -91,6 +93,13 @@ class PiUi(object):
                 self.down()
             elif event.direction == DIRECTION_UP:
                 self.up()
+            elif event.direction == DIRECTION_RIGHT:
+                pass
+            elif event.direction == DIRECTION_LEFT:
+                pass
+            elif event.direction == DIRECTION_MIDDLE:
+                pass
+            self.on_refresh()
 
     #####
     def up(self):
@@ -114,11 +123,12 @@ class Sensor(object):
     def __init__(self):
         super(Sensor, self).__init__()
         self.hat = SenseHat()
+        self.refresh_handler = None
 
     #####
     def refresh(self):
         # self.hat.clear()
-        if self.refresh_handler != None:
+        if self.refresh_handler is not None:
             self.refresh_handler()
 
     #####
@@ -129,11 +139,11 @@ class Sensor(object):
         self.hat.stick.direction_left = event_handler
         self.hat.stick.direction_right = event_handler
         self.hat.stick.direction_middle = event_handler
-        self.hat.stick.direction_any = self.refresh
+        # self.hat.stick.direction_any = self.refresh
 
     #####
     def wait_for_input(self):
-        self.hat.stick.wait_for_event(True)
+        #self.hat.stick.wait_for_event(True)
         pause()
 
 
