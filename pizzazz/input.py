@@ -3,6 +3,8 @@ from collections import namedtuple
 
 from gpiozero import Button
 
+from utils import Singleton
+
 # Tuples
 ButtonEvent = namedtuple("ButtonEvent", "pin name action timestamp")
 NamedButton = namedtuple("NamedButton", "name button pin")
@@ -17,10 +19,20 @@ ACTION_HELD = "held"
 
 class ButtonManager(object):
 
+    __metaclass__ = Singleton
+
     def __init__(self):
         super(ButtonManager, self).__init__()
-        self._event_callback = None
+        self._button_controller = None
         self._button_map = {}
+
+    @property
+    def button_controller(self):
+        return self._button_controller
+
+    @button_controller.setter
+    def button_controller(self, value):
+        self._button_controller = value
 
     def add_button(self, pin, name, pull_up=True, bounce_time=None, hold_time=None, hold_repeat=None):
         if self._button_map.has_key(pin):
@@ -41,14 +53,6 @@ class ButtonManager(object):
         button.when_held = self._handle_held
         self._button_map[pin] = NamedButton(name, button, pin)
 
-    @property
-    def event_callback(self):
-        return self._event_callback
-
-    @event_callback.setter
-    def event_callback(self, value):
-        self._event_callback = value
-
     def _get_button(self, pin):
         return self._button_map[pin]
 
@@ -58,9 +62,9 @@ class ButtonManager(object):
         return ButtonEvent(pin, button.name, action, timestamp)
 
     def _handle_event(self, pin, action):
-        if self._event_callback:
+        if self._button_controller:
             event = self._create_event(pin, action)
-            self._event_callback(event)
+            self._button_controller._handle_button_event(event)
 
     def _handle_pressed(self, device):
         self._handle_event(device.pin.number, ACTION_PRESSED)
