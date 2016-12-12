@@ -1,77 +1,25 @@
 import os
+from collections import namedtuple
 
 from PIL import ImageFont
-from oled.render import canvas
 
-from pizzazz.display import SSD1306
-from pizzazz.input import ButtonCallbacks, PinnedCallbacks, ButtonManager, ACTION_PRESSED
-
-
-FONT_PATH = "./fonts/Super-Mario-World.ttf"
-FONT_SIZE = 8
-SCREEN_TOP = 16
-PADDING_LEFT = 2
-PADDING_TOP = 1
-PADDING_BOTTOM = 1
-PADDING_RIGHT = 2
+from input import ButtonManager
+from mixins import MultiButtonControllerMixin, PizzazzButtonControllerMixin
+from utils import not_implemented, is_iterable
 
 
-class PiUi(object):
+MenuItem = namedtuple("MenuItem", "title callback")
 
-    BUTTON_UP = "up"
-    BUTTON_DOWN = "down"
-    BUTTON_LEFT = "left"
-    BUTTON_RIGHT = "right"
-    BUTTON_OK = "ok"
-    BUTTON_CANCEL = "cancel"
+
+class WindowManager(MultiButtonControllerMixin):
 
     #####
-    def __init__(self, screen):
-        super(PiUi, self).__init__()
-        self.screen = screen
-        self.looping = None
-        self.position = 1
-        font_path = os.path.abspath(FONT_PATH)
-        self.font = ImageFont.truetype(font_path, FONT_SIZE)
-        # self.sensor = Sensor()
-        self._btn_mgr = ButtonManager()
-        self._btn_mgr.event_callback = self.input_event
-        self._primary_pins = {
-            self.BUTTON_UP: None,
-            self.BUTTON_DOWN: None,
-            self.BUTTON_LEFT: None,
-            self.BUTTON_RIGHT: None,
-            self.BUTTON_OK: None,
-            self.BUTTON_CANCEL: None,
-        }
-        self._other_pins = {}
-
-    #####
-    def set_menu(self, title, items):
-        self.menu_title = title
-        self.menu_items = items
-
-    #####
-    def set_buttons(self, up=0, down=0, left=0, right=0, ok=0, cancel=0):
-        self._setup_button(self.BUTTON_UP, up, self.up)
-        self._setup_button(self.BUTTON_DOWN, down, self.down)
-        self._setup_button(self.BUTTON_LEFT, left)
-        self._setup_button(self.BUTTON_RIGHT, right)
-        self._setup_button(self.BUTTON_OK, ok)
-        self._setup_button(self.BUTTON_CANCEL, cancel)
-
-    def _setup_button(self, name, pin, callback=None):
-        if self._primary_pins[name] is not None:
-            # TODO: Specialize the error used here
-            raise ValueError("Button {} has already been set up on pin {}".format(name, self._primary_pins[name]))
-        elif type(pin) is not int:
-            raise AttributeError("pin must be an integer")
-        else:
-            # TODO: Add bounce time and hold logic here
-            self._btn_mgr.add_button(pin, name)
-            button_callback = ButtonCallbacks(callback, None, None)
-            pinned_callback = PinnedCallbacks(pin, button_callback)
-            self._primary_pins[name] = pinned_callback
+    def __init__(self, left_screen, right_screen):
+        super(WindowManager, self).__init__()
+        ButtonManager().button_controller = self
+        self.left_screen = left_screen
+        self.right_screen = right_screen
+        self.focused_screen = self.left_screen
 
     #####
     def loop(self):
@@ -82,58 +30,110 @@ class PiUi(object):
             print
             print("Program stopped.")
 
-    #####
-    def draw(self):
-        with canvas(self.screen._device) as draw:
-            draw.setfont(self.font)
-            draw.text((PADDING_LEFT, 0), self.menu_title, fill=self.screen.FILL_SOLID)
-            top = SCREEN_TOP
-            i = 1
-            for item in self.menu_items:
-                y = top + PADDING_TOP
-                bottom = y + FONT_SIZE
-                if i == self.position:
-                    draw.rectangle((0, top, self.screen.SCREEN_WIDTH, bottom), fill=self.screen.FILL_SOLID)
-                    draw.text((PADDING_LEFT, y), item, fill=self.screen.FILL_EMPTY)
-                else:
-                    draw.text((PADDING_LEFT, y), item, fill=self.screen.FILL_SOLID)
-                top = bottom + PADDING_BOTTOM
-                i += 1
+
+class AbstractWindow(object):
+
+    DEFAULT_FONT_PATH = "./fonts/Super-Mario-World.ttf"
+    DEFAULT_FONT_SIZE = 8
+
+    # todo: implement title bar sizing in this class
+    # todo: implement needs_refresh logic to prevent unnecessary re-draws
+
+    def __init__(self, window_title, font=DEFAULT_FONT_PATH, font_size=DEFAULT_FONT_SIZE, screen=None):
+        self._window_title = window_title
+        self._image_font = None
+        self.font = font, font_size
+        self._screen = screen
+
+    @property
+    def window_title(self):
+        return self._window_title
+
+    @window_title.setter
+    def window_title(self, value):
+        self._window_title = value
+
+    @property
+    def screen(self):
+        return self._screen
+
+    @screen.setter
+    def screen(self, value):
+        self._screen = value
+
+    @property
+    def font(self):
+        return self._image_font
+
+    @font.setter
+    def font(self, value):
+        if is_iterable(value):
+            filename = value[0]
+            font_size = value[1]
+        else:
+            filename = value
+            font_size = self.DEFAULT_FONT_SIZE
+        font_path = os.path.abspath(filename)
+        self._image_font = ImageFont.truetype(font_path, font_size)
+
+    def draw(self, screen, image_draw_canvas):
+        raise NotImplementedError(not_implemented(self, "draw()"))
+
+    def _refresh(self):
+         if self._screen is not None:
+             self._screen.draw_window(self)
+
+
+class MenuWindow(AbstractWindow, PizzazzButtonControllerMixin):
+
+    # TODO: Move SCREEN_TOP and other header-related code to special class for split-color ssd1306 screens?
+    SCREEN_TOP = 16
+    PADDING_LEFT = 2
+    PADDING_TOP = 1
+    PADDING_BOTTOM = 1
+    PADDING_RIGHT = 2
+
+    def __init__(self, window_title):#TODO: Update parameters when finalized
+        super(MenuWindow, self).__init__(window_title)
+        self._position = 0
+        self._menu_items = []
 
     #####
-    def input_event(self, event):
-        print("Event direction, action, timestamp:")
-        print event.pin
-        print event.name
-        print event.action
-        print event.timestamp
-        if event.action == ACTION_PRESSED:
-            if self._primary_pins.has_key(event.name):
-                pinned_callback = self._primary_pins[event.name]
-                if pinned_callback.callbacks is not None \
-                        and pinned_callback.callbacks.pressed is not None:
-                    callback = pinned_callback.callbacks.pressed
-                    callback()
-                else:
-                    # TODO: This is so buttons without callbacks will not run the refresh followup. Make this configurable.
-                    return
+    def add_menu_item(self, title, callback, index=None):
+        menu_item = MenuItem(title, callback)
+        if index is not None:
+            self._menu_items.insert(index, menu_item)
+        else:
+            self._menu_items.append(menu_item)
+
+    def draw(self, screen, canvas):
+        canvas.setfont(self.font)
+        canvas.text((self.PADDING_LEFT, 0), self.window_title, fill=screen.FILL_SOLID)
+        top = self.SCREEN_TOP
+        i = 1
+        for item in self._menu_items:
+            y = top + self.PADDING_TOP
+            bottom = y + FONT_SIZE
+            if i == self._position:
+                canvas.rectangle((0, top, screen.width, bottom), fill=screen.FILL_SOLID)
+                canvas.text((self.PADDING_LEFT, y), item.title, fill=screen.FILL_EMPTY)
             else:
-                return
-            # TODO - else if pin is in custom additional button list, self._other_pins
-            self.on_refresh()
+                canvas.text((self.PADDING_LEFT, y), item.title, fill=screen.FILL_SOLID)
+            top = bottom + self.PADDING_BOTTOM
+            i += 1
 
-    #####
-    def up(self):
-        if self.position > 1:
-            self.position -= 1
+    def _down_pressed(self):
+        self._position = self._position - 1 if self._position > 1 else 1
+        self._refresh()
 
-    #####
-    def down(self):
-        if self.position < len(self.menu_items):
-            self.position += 1
+    def _up_pressed(self):
+        self._position = self._position - 1 if self._position > 1 else 1
+        self._refresh()
 
-    #####
-    def on_refresh(self):
-        print "Refreshing UI"
-        self.draw()
+    def _ok_pressed(self):
+        # TODO: execute callback on selected menu item
+        pass
 
+    def _cancel_pressed(self):
+        # TODO: go back one item in the history stack
+        pass

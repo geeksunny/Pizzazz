@@ -1,11 +1,14 @@
 from oled.device import ssd1306
 from oled.render import canvas
+
 from utils import not_implemented
 
 
 class AbstractI2CScreen(object):
 
     # TODO: Work in more of a common interface that uses the PIL objects sent to a master draw() method
+    FILL_SOLID = 255
+    FILL_EMPTY = 0
 
     def __init__(self, i2c_address, i2c_port=1):
         self.address = i2c_address
@@ -15,35 +18,41 @@ class AbstractI2CScreen(object):
     def _request_device(self):
         raise NotImplemented(not_implemented(self, "_request_device()"))
 
+    @property
+    def width(self):
+        raise NotImplemented(not_implemented(self, "width()"))
+
+    @property
+    def height(self):
+        raise NotImplemented(not_implemented(self, "height()"))
+
+    def draw_window(self, window):
+        raise NotImplementedError(not_implemented(self, "draw_window()"))
+
     def clear_screen(self):
         raise NotImplemented(not_implemented(self, "clear_screen()"))
-
-    def screen_width(self):
-        raise NotImplemented(not_implemented(self, "screen_width()"))
-
-    def screen_height(self):
-        raise NotImplemented(not_implemented(self, "screen_height()"))
 
 
 class SSD1306(AbstractI2CScreen):
 
-    SCREEN_WIDTH = 128
-    SCREEN_HEIGHT = 64
-    FILL_SOLID = 255
-    FILL_EMPTY = 0
+    __SCREEN_WIDTH = 128
+    __SCREEN_HEIGHT = 64
 
     def _request_device(self):
         return ssd1306(port=self.port, address=self.address)
 
+    def draw_window(self, window):
+        with canvas(self._device) as draw:
+            window.draw(self, draw)
+
     def clear_screen(self):
         with canvas(self._device) as draw:
-            # TODO: Work this in to the managed UI system
-            draw.rectangle((0, 0, self.SCREEN_WIDTH, self.SCREEN_HEIGHT), fill=0)
+            draw.rectangle((0, 0, self.width, self.height), fill=0)
 
-    def screen_height(self):
-        return self.SCREEN_HEIGHT
+    @property
+    def height(self):
+        return self.__SCREEN_HEIGHT
 
-    def screen_width(self):
-        return self.SCREEN_WIDTH
-
-
+    @property
+    def width(self):
+        return self.__SCREEN_WIDTH
