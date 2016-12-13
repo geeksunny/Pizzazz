@@ -1,6 +1,6 @@
 from sense_hat import SenseHat
 
-from pizzazz.ui import PiUi
+from pizzazz.ui import MenuWindow, WindowManager
 from pizzazz.display import SSD1306
 
 ##########
@@ -8,7 +8,8 @@ from pizzazz.display import SSD1306
 ##########
 
 # Configuration
-I2C_ADDRESS = 0x3C#, 0x3D
+I2C_ADDR_LEFT = 0x3D
+I2C_ADDR_RIGHT = 0x3C
 
 
 class Sensor(object):
@@ -21,13 +22,20 @@ class Sensor(object):
 
 #####
 # Program init
-d = SSD1306(I2C_ADDRESS)
-ui = PiUi(d)
+screen_left = SSD1306(I2C_ADDR_LEFT)
+screen_right = SSD1306(I2C_ADDR_RIGHT)
+wm = WindowManager(screen_left, screen_right)
 
-title = "Main Menu"
-items = ["System Info", "Options", "Reboot"]
+menu_left = MenuWindow("Main Menu")
+items_left = ["System Info", "Options", "Reboot"]
+for title in items_left:
+    menu_left.add_menu_item(title, None)
+wm.left_window = menu_left
 
-ui.set_buttons(27, 5, 17, 22, 12, 6)
-ui.set_menu(title, items)
-ui.draw()
-ui.loop()
+menu_right = MenuWindow("Special Options")
+items_right = ["Come on", "Down to", "South Park"]
+for title in items_right:
+    menu_right.add_menu_item(title, None)
+wm.right_window = menu_right
+
+wm.start()

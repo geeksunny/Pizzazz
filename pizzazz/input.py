@@ -36,9 +36,7 @@ class ButtonManager(object):
 
     def add_button(self, pin, name, pull_up=True, bounce_time=None, hold_time=None, hold_repeat=None):
         if self._button_map.has_key(pin):
-            existing_button = self._get_button(pin)
-            # TODO: Specialize the error used here
-            raise ValueError("Pin {} has already been defined as {}".format(pin, existing_button.name))
+            return
         # TODO: Reference http://stackoverflow.com/a/21986301/1846662 for a better way to call Button()
         if bounce_time > 0:
             button = Button(pin, pull_up, bounce_time)

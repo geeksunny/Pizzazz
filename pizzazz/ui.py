@@ -1,5 +1,6 @@
 import os
 from collections import namedtuple
+from signal import pause
 
 from PIL import ImageFont
 
@@ -10,47 +11,96 @@ from utils import not_implemented, is_iterable
 
 MenuItem = namedtuple("MenuItem", "title callback")
 
+DEFAULT_FONT_PATH = "./fonts/Super-Mario-World.ttf"
+DEFAULT_FONT_SIZE = 8
+
 
 class WindowManager(MultiButtonControllerMixin):
 
     #####
     def __init__(self, left_screen, right_screen):
         super(WindowManager, self).__init__()
-        ButtonManager().button_controller = self
-        self.left_screen = left_screen
-        self.right_screen = right_screen
-        self.focused_screen = self.left_screen
+        self._btn_mgr = ButtonManager()
+        self._btn_mgr.button_controller = self
+        # ButtonManager().button_controller = self
+        self._left_screen = left_screen
+        self._right_screen = right_screen
+        self._focused_screen = self._left_screen
+        self._left_window = None
+        self._right_window = None
+        self.register_controller(WindowManager.ButtonController())
+
+    @property
+    def left_window(self):
+        return self._left_window
+
+    @left_window.setter
+    def left_window(self, value):
+        self._left_window = value
+        self._left_window.screen = self._left_screen
+        self.register_controller(self._left_window)
+
+    @property
+    def right_window(self):
+        return self._right_window
+
+    @right_window.setter
+    def right_window(self, value):
+        self._right_window = value
+        self._right_window.screen = self._right_screen
+        self.register_controller(self._right_window)
+
+    def draw(self):
+        if self._left_window is not None:
+            self._left_window.refresh()
+        if self.right_window is not None:
+            self.right_window.refresh()
 
     #####
-    def loop(self):
+    def start(self):
         try:
-            raw_input()
+            print "Main program loop started"
+            self.draw()
+            pause()
         except KeyboardInterrupt:
-            self.screen.clear_screen()
+            self._cleanup()
             print
             print("Program stopped.")
+        else:
+            self._cleanup()
+            print "Clean exit"
+
+    def _cleanup(self):
+        self._left_screen.clear_screen()
+        self._right_screen.clear_screen()
+
+    class ButtonController(PizzazzButtonControllerMixin):
+        def _left_pressed(self):
+            print "DOWN"
+
+        def _right_pressed(self):
+            print "UP"
 
 
 class AbstractWindow(object):
-
-    DEFAULT_FONT_PATH = "./fonts/Super-Mario-World.ttf"
-    DEFAULT_FONT_SIZE = 8
 
     # todo: implement title bar sizing in this class
     # todo: implement needs_refresh logic to prevent unnecessary re-draws
 
     def __init__(self, window_title, font=DEFAULT_FONT_PATH, font_size=DEFAULT_FONT_SIZE, screen=None):
+        super(AbstractWindow, self).__init__()
         self._window_title = window_title
         self._image_font = None
+        self.font_size = font_size  # TODO: Need a better way to manage this value
         self.font = font, font_size
         self._screen = screen
 
     @property
-    def window_title(self):
+    def title(self):
         return self._window_title
 
-    @window_title.setter
-    def window_title(self, value):
+    @title.setter
+    def title(self, value):
         self._window_title = value
 
     @property
@@ -72,16 +122,22 @@ class AbstractWindow(object):
             font_size = value[1]
         else:
             filename = value
-            font_size = self.DEFAULT_FONT_SIZE
+            font_size = DEFAULT_FONT_SIZE
         font_path = os.path.abspath(filename)
         self._image_font = ImageFont.truetype(font_path, font_size)
 
     def draw(self, screen, image_draw_canvas):
         raise NotImplementedError(not_implemented(self, "draw()"))
 
-    def _refresh(self):
+    def refresh(self):
          if self._screen is not None:
              self._screen.draw_window(self)
+
+    def _activated(self):
+        pass
+
+    def _deactivated(self):
+        pass
 
 
 class MenuWindow(AbstractWindow, PizzazzButtonControllerMixin):
@@ -93,8 +149,8 @@ class MenuWindow(AbstractWindow, PizzazzButtonControllerMixin):
     PADDING_BOTTOM = 1
     PADDING_RIGHT = 2
 
-    def __init__(self, window_title):#TODO: Update parameters when finalized
-        super(MenuWindow, self).__init__(window_title)
+    def __init__(self, window_title, font=DEFAULT_FONT_PATH, font_size=DEFAULT_FONT_SIZE, screen=None):
+        super(MenuWindow, self).__init__(window_title, font, font_size, screen)
         self._position = 0
         self._menu_items = []
 
@@ -108,12 +164,12 @@ class MenuWindow(AbstractWindow, PizzazzButtonControllerMixin):
 
     def draw(self, screen, canvas):
         canvas.setfont(self.font)
-        canvas.text((self.PADDING_LEFT, 0), self.window_title, fill=screen.FILL_SOLID)
+        canvas.text((self.PADDING_LEFT, 0), self.title, fill=screen.FILL_SOLID)
         top = self.SCREEN_TOP
-        i = 1
+        i = 0
         for item in self._menu_items:
             y = top + self.PADDING_TOP
-            bottom = y + FONT_SIZE
+            bottom = y + self.font_size
             if i == self._position:
                 canvas.rectangle((0, top, screen.width, bottom), fill=screen.FILL_SOLID)
                 canvas.text((self.PADDING_LEFT, y), item.title, fill=screen.FILL_EMPTY)
@@ -124,11 +180,11 @@ class MenuWindow(AbstractWindow, PizzazzButtonControllerMixin):
 
     def _down_pressed(self):
         self._position = self._position - 1 if self._position > 1 else 1
-        self._refresh()
+        self.refresh()
 
     def _up_pressed(self):
         self._position = self._position - 1 if self._position > 1 else 1
-        self._refresh()
+        self.refresh()
 
     def _ok_pressed(self):
         # TODO: execute callback on selected menu item
