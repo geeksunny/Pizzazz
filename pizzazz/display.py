@@ -7,8 +7,8 @@ from utils import not_implemented
 class AbstractI2CScreen(object):
 
     # TODO: Work in more of a common interface that uses the PIL objects sent to a master draw() method
-    FILL_SOLID = 255
-    FILL_EMPTY = 0
+    __FILL_SOLID = 255
+    __FILL_EMPTY = 0
 
     def __init__(self, i2c_address, i2c_port=1):
         self.address = i2c_address
@@ -17,6 +17,14 @@ class AbstractI2CScreen(object):
 
     def _request_device(self):
         raise NotImplemented(not_implemented(self, "_request_device()"))
+
+    @property
+    def fill_solid(self):
+        return self.__FILL_SOLID
+
+    @property
+    def fill_empty(self):
+        return self.__FILL_EMPTY
 
     @property
     def width(self):
