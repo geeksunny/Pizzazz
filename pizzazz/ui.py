@@ -75,6 +75,10 @@ class WindowManager(MultiButtonControllerMixin):
     def _cleanup(self):
         self._left_screen.clear_screen()
         self._right_screen.clear_screen()
+        self._btn_mgr.cleanup()
+        self._alert_led.close()    # Stopping alert LED
+        self._screensaver_led.close()
+
     class ButtonController(DPadButtonControllerMixin):
         def __init__(self, window_manager):
             super(WindowManager.ButtonController, self).__init__()
@@ -158,6 +162,7 @@ class MenuWindow(AbstractWindow, DPadButtonControllerMixin, OkCancelButtonContro
         super(MenuWindow, self).__init__(window_title, font, font_size, screen)
         self._position = 0
         self._menu_items = []
+        self._outline = False
 
     #####
     def add_menu_item(self, title, callback, index=None):

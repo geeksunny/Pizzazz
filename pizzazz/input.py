@@ -73,3 +73,8 @@ class ButtonManager(object):
     def _handle_held(self, device):
         self._handle_event(device.pin.number, ACTION_HELD)
 
+    def cleanup(self):
+        for name, named_button in self._button_map.iteritems():
+            named_button.button.close()
+            del named_button
+        self._button_map.clear()
