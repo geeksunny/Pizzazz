@@ -5,7 +5,7 @@ from signal import pause
 from PIL import ImageFont
 
 from input import ButtonManager
-from mixins import MultiButtonControllerMixin, PizzazzButtonControllerMixin
+from mixins import MultiButtonControllerMixin, OkCancelButtonControllerMixin, DPadButtonControllerMixin, \
 from utils import not_implemented, is_iterable
 
 
@@ -22,13 +22,12 @@ class WindowManager(MultiButtonControllerMixin):
         super(WindowManager, self).__init__()
         self._btn_mgr = ButtonManager()
         self._btn_mgr.button_controller = self
-        # ButtonManager().button_controller = self
         self._left_screen = left_screen
         self._right_screen = right_screen
         self._focused_screen = self._left_screen
         self._left_window = None
         self._right_window = None
-        self.register_controller(WindowManager.ButtonController())
+        self.register_controller(WindowManager.ButtonController(self))
 
     @property
     def left_window(self):
@@ -73,8 +72,11 @@ class WindowManager(MultiButtonControllerMixin):
     def _cleanup(self):
         self._left_screen.clear_screen()
         self._right_screen.clear_screen()
+    class ButtonController(DPadButtonControllerMixin):
+        def __init__(self, window_manager):
+            super(WindowManager.ButtonController, self).__init__()
+            self._window_manager = window_manager
 
-    class ButtonController(PizzazzButtonControllerMixin):
         def _left_pressed(self):
             print "DOWN"
 
@@ -140,7 +142,7 @@ class AbstractWindow(object):
         pass
 
 
-class MenuWindow(AbstractWindow, PizzazzButtonControllerMixin):
+class MenuWindow(AbstractWindow, DPadButtonControllerMixin, OkCancelButtonControllerMixin):
 
     # TODO: Move SCREEN_TOP and other header-related code to special class for split-color ssd1306 screens?
     SCREEN_TOP = 16

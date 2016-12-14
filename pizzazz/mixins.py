@@ -64,18 +64,15 @@ class MultiButtonControllerMixin(AbstractButtonControllerMixin):
         pass
 
 
-class PizzazzButtonControllerMixin(AbstractButtonControllerMixin):
+class DPadButtonControllerMixin(AbstractButtonControllerMixin):
 
-    def __init__(self):
-        super(PizzazzButtonControllerMixin, self).__init__()
+    # TODO: Put in a method for changing default pin numbers
 
     def _setup_buttons(self):
         self._setup_button("up", 27, self._up_pressed, self._up_released, self._up_held)
         self._setup_button("down", 5, self._down_pressed, self._down_released, self._down_held)
         self._setup_button("left", 17, self._left_pressed, self._left_released, self._left_held)
         self._setup_button("right", 22, self._right_pressed, self._right_released, self._right_held)
-        self._setup_button("ok", 12, self._ok_pressed, self._ok_released, self._ok_held)
-        self._setup_button("cancel", 6, self._cancel_pressed, self._cancel_released, self._cancel_held)
 
     def _up_pressed(self):
         """
@@ -148,6 +145,13 @@ class PizzazzButtonControllerMixin(AbstractButtonControllerMixin):
         Override this method to perform an action upon holding the right button.
         """
         pass
+
+
+class OkCancelButtonControllerMixin(AbstractButtonControllerMixin):
+
+    def _setup_buttons(self):
+        self._setup_button("ok", 12, self._ok_pressed, self._ok_released, self._ok_held)
+        self._setup_button("cancel", 6, self._cancel_pressed, self._cancel_released, self._cancel_held)
 
     def _ok_pressed(self):
         """
