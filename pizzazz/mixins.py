@@ -1,3 +1,4 @@
+from gpiozero import GPIOPinInUse
 from gpiozero import LED
 from gpiozero import PWMLED
 
@@ -30,10 +31,9 @@ class AbstractButtonControllerMixin(object):
 
     def _setup_button(self, name, pin, pressed_callback=None, released_callback=None, held_callback=None):
         if self._button_map.has_key(name) and self._button_map[name] is not None:
-            # TODO: Specialize the error here
-            raise ValueError("Button {} has already been set up on pin {}.".format(name, self._button_map[name].pin))
+            raise GPIOPinInUse("Button {} has already been set up on pin {}.".format(name, self._button_map[name].pin))
         elif type(pin) is not int:
-            raise AttributeError("Value for pin must be an integer.")
+            raise TypeError("Value for pin must be an integer.")
         else:
             # TODO: Add bounce time, hold time, and hold limit logic here
             ButtonManager().add_button(pin, name)
