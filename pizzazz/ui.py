@@ -203,7 +203,7 @@ class AbstractWindow(object):
 
 class MenuWindow(AbstractWindow, DPadButtonControllerMixin, OkCancelButtonControllerMixin):
 
-    # TODO: Move SCREEN_TOP and other header-related code to special class for split-color ssd1306 screens?
+    # TODO: Move SCREEN_TOP and other header-related code to special class for split-color ssd1306 screens? TitleBarMixin. Windows will query this info during draw()
     SCREEN_TOP = 16
     PADDING_LEFT = 2
     PADDING_TOP = 1
@@ -241,13 +241,35 @@ class MenuWindow(AbstractWindow, DPadButtonControllerMixin, OkCancelButtonContro
             top = bottom + self.PADDING_BOTTOM
             i += 1
 
+    @property
+    def position(self):
+        return self._position
+
+    @position.setter
+    def position(self, value):
+        if self._position == value:
+            return
+        if value < 0:
+            self.position = 0
+        elif value >= len(self._menu_items):
+            self.position = len(self._menu_items) - 1
+        else:
+            self._position = value
+            self.refresh()
+
+    def _when_unfocused(self):
+        self._outline = True
+
+    def _when_focused(self):
+        self._outline = False
+        if self.position < 0:
+            self.position = 0
+
     def _down_pressed(self):
-        self._position = self._position - 1 if self._position > 1 else 1
-        self.refresh()
+        self.position += 1
 
     def _up_pressed(self):
-        self._position = self._position - 1 if self._position > 1 else 1
-        self.refresh()
+        self.position -= 1
 
     def _ok_pressed(self):
         # TODO: execute callback on selected menu item
