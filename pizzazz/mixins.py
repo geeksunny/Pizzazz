@@ -204,17 +204,19 @@ class LEDControllerMixin(object):
         self._led = None
         self.setup_on_pin(pin, name)
 
-    def _set_led(self, pin):
-        if self._led is None:
-            self._led = LED(pin)
-        else:
-            # TODO: Specialize the error raised here
-            raise ValueError("Already controlling a LED on pin {}.".format(self._led.pin))
+    def _set_led(self, pin, reassign):
+        if self._led is not None:
+            if reassign is True:
+                self._led.close()
+                del self._led
+            else:
+                return
+        self._led = LED(pin)
 
-    def setup_on_pin(self, pin, name=None):
+    def setup_on_pin(self, pin, name=None, reassign=False):
         if pin is not None:
-            self._set_led(pin)
-        self._name = name
+            self._set_led(pin, reassign)
+            self._name = name
 
     def blink(self, on_time=1, off_time=1, n=None, background=True):
         if self._led is not None:
