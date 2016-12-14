@@ -211,7 +211,10 @@ class LEDControllerMixin(object):
                 del self._led
             else:
                 return
-        self._led = LED(pin)
+        self._led = self._create_led(pin)
+
+    def _create_led(self, pin):
+        return LED(pin)
 
     def setup_on_pin(self, pin, name=None, reassign=False):
         if pin is not None:
@@ -249,8 +252,8 @@ class LEDControllerMixin(object):
 
 class PWMLEDControllerMixin(LEDControllerMixin):
 
-    def _set_led(self, pin):
-        self._led = PWMLED(pin)
+    def _create_led(self, pin):
+        return PWMLED(pin)
 
     def blink(self, on_time=1, off_time=1, fade_in_time=0, fade_out_time=0, n=None, background=True):
         if self._led is not None:
