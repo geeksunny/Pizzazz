@@ -6,6 +6,7 @@ from PIL import ImageFont
 
 from input import ButtonManager
 from mixins import MultiButtonControllerMixin, OkCancelButtonControllerMixin, DPadButtonControllerMixin, \
+    AlertLEDControllerMixin, LEDControllerMixin
 from utils import not_implemented, is_iterable
 
 
@@ -20,6 +21,8 @@ class WindowManager(MultiButtonControllerMixin):
     #####
     def __init__(self, left_screen, right_screen):
         super(WindowManager, self).__init__()
+        self._alert_led = AlertLEDControllerMixin(13, "red")
+        self._screensaver_led = LEDControllerMixin(19, "green")
         self._btn_mgr = ButtonManager()
         self._btn_mgr.button_controller = self
         self._left_screen = left_screen
@@ -78,10 +81,10 @@ class WindowManager(MultiButtonControllerMixin):
             self._window_manager = window_manager
 
         def _left_pressed(self):
-            print "DOWN"
+            self._window_manager._alert_led.toggle()
 
         def _right_pressed(self):
-            print "UP"
+            self._window_manager._screensaver_led.toggle()
 
 
 class AbstractWindow(object):

@@ -1,3 +1,6 @@
+from gpiozero import LED
+from gpiozero import PWMLED
+
 from input import ButtonCallbacks, ButtonManager, PinnedCallbacks, ACTION_PRESSED, ACTION_RELEASED, ACTION_HELD
 from utils import not_implemented
 
@@ -189,3 +192,83 @@ class OkCancelButtonControllerMixin(AbstractButtonControllerMixin):
         """
         pass
 
+
+class LEDControllerMixin(object):
+
+    # TODO: Implement a blink sequence system using a thread and this as an example:
+    # https://github.com/RPi-Distro/python-gpiozero/issues/149#issuecomment-182632906
+
+    def __init__(self, pin=None, name=None):
+        super(LEDControllerMixin, self).__init__()
+        self._name = None
+        self._led = None
+        self.setup_on_pin(pin, name)
+
+    def _set_led(self, pin):
+        if self._led is None:
+            self._led = LED(pin)
+        else:
+            # TODO: Specialize the error raised here
+            raise ValueError("Already controlling a LED on pin {}.".format(self._led.pin))
+
+    def setup_on_pin(self, pin, name=None):
+        if pin is not None:
+            self._set_led(pin)
+        self._name = name
+
+    def blink(self, on_time=1, off_time=1, n=None, background=True):
+        if self._led is not None:
+            self._led.blink(on_time, off_time, n, background)
+
+    def on(self):
+        if self._led is not None:
+            self._led.on()
+
+    def off(self):
+        if self._led is not None:
+            self._led.off()
+
+    def toggle(self):
+        if self._led is not None:
+            self._led.toggle()
+
+    def close(self):
+        # TODO: See if this can be set up in some kind of destructor pattern
+        if self._led is not None:
+            self._led.close()
+
+    @property
+    def is_lit(self):
+        if self._led is not None:
+            return self._led.is_lit
+        else:
+            return False
+
+
+class PWMLEDControllerMixin(LEDControllerMixin):
+
+    def _set_led(self, pin):
+        self._led = PWMLED(pin)
+
+    def blink(self, on_time=1, off_time=1, fade_in_time=0, fade_out_time=0, n=None, background=True):
+        if self._led is not None:
+            self._led.blink(on_time, off_time, fade_in_time, fade_out_time, n, background)
+
+    def pulse(self, fade_in_time=1, fade_out_time=1, n=None, background=True):
+        if self._led is not None:
+            self._led.pulse(fade_in_time, fade_out_time, n, background)
+
+
+class AlertLEDControllerMixin(PWMLEDControllerMixin):
+
+    def bounce(self):
+        # stark blinking
+        pass
+
+    def ding(self):
+        # solid led on
+        pass
+
+    def alert(self):
+        # slow pulse
+        pass
