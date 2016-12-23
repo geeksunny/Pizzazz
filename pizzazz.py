@@ -32,8 +32,8 @@ for title in items_left:
     menu_left.add_menu_item(title, None)
 wm.left_window = menu_left
 
-menu_right = MenuWindow("Special Options")
-items_right = ["Come on", "Down to", "South Park"]
+menu_right = MenuWindow("Super Phun Thyme")
+items_right = ["Going on down to", "     South Park", "gonna have myself", "             a time"]
 for title in items_right:
     menu_right.add_menu_item(title, None)
 wm.right_window = menu_right
