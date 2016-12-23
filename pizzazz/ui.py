@@ -201,6 +201,34 @@ class AbstractWindow(object):
         pass
 
 
+class ScrollableWindow(AbstractWindow, DPadButtonControllerMixin, OkCancelButtonControllerMixin):
+
+    def __init__(self, window_title, font=DEFAULT_FONT_PATH, font_size=DEFAULT_FONT_SIZE, screen=None):
+        super(ScrollableWindow, self).__init__(window_title, font, font_size, screen)
+        self._lines = []
+
+    def draw(self, screen, canvas):
+        canvas.setfont(self.font)
+
+    def _when_unfocused(self):
+        super(ScrollableWindow, self)._when_unfocused()
+
+    def _when_focused(self):
+        super(ScrollableWindow, self)._when_focused()
+
+    def _up_pressed(self):
+        super(ScrollableWindow, self)._up_pressed()
+
+    def _down_pressed(self):
+        super(ScrollableWindow, self)._down_pressed()
+
+    def _ok_pressed(self):
+        super(ScrollableWindow, self)._ok_pressed()
+
+    def _cancel_pressed(self):
+        super(ScrollableWindow, self)._cancel_pressed()
+
+
 class MenuWindow(AbstractWindow, DPadButtonControllerMixin, OkCancelButtonControllerMixin):
 
     # TODO: Move SCREEN_TOP and other header-related code to special class for split-color ssd1306 screens? TitleBarMixin. Windows will query this info during draw()
