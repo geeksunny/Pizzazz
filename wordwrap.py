@@ -7,7 +7,7 @@ import re
 
 font_size = 12
 screen_width = 128
-test_str = "The quick brown fox jumps over the lazy dog."
+test_str = "The quick brown fox jumps over the lazy dog.   "
 font = ImageFont.truetype("/Users/Sunny/Documents/pizzazz/fonts/Super-Mario-World.ttf", font_size)
 
 Range = namedtuple("Range", "start end")
@@ -23,20 +23,30 @@ def _find_punctuation_break(text):
 
 
 def _find_last_whitespace(text):
-    regex = re.compile(r"([\n\r\s]+)\S+$")
+    regex = re.compile(r"([\n\r\s]+)(\S*)([\n\r\s]*)$")
     match = regex.search(text)
-    if match and len(match.groups()):
+    if not match:
+        return None
+    if not len(match.group(2)):
+        pass # there is no word here.
+    if len(match.group(3)):
+        pass # group-2 is a complete word
+    if len(match.groups()):
         return Range(match.start(1), match.end(1))
     else:
         return None
 
 
-def _get_substring(text):
-    p_break = _find_punctuation_break(text)
-    pass
-    whitespace = _find_last_whitespace(text)
-    pass
-    pass
+def _get_substring(text, pos):
+    # TODO: Does not work. Needs to be fixed.
+    substr = text[:pos]
+    p_break = _find_punctuation_break(substr)
+    if p_break is not None:
+        return text[:p_break.end], p_break.end
+    whitespace = _find_last_whitespace(substr)
+    if whitespace is not None:
+        return text[:whitespace.start], whitespace.start
+    return substr, pos
 
 
 def _remove_line(text, length):
@@ -75,11 +85,7 @@ def _word_wrap(text, width):
         fit = failure = None
         line_complete = False
         while not line_complete:
-            substr = text[:pos]
-            whitespace = _find_last_whitespace(substr)
-            if whitespace:
-                pos = whitespace.start
-                substr = text[:pos]
+            substr, next_pos = _get_substring(text, pos)
             print "pos: {} | substr: {}".format(pos, substr)
             if _text_fits(substr, width):
                 print " -fits"
